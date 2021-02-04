@@ -1,0 +1,10 @@
+# ignore everything
+* 
+
+# allow parent files to be included
+!*/
+
+# manually include:
+!.gitignore
+!shell_prompts.txt
+!README.md
