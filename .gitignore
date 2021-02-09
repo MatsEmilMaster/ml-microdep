@@ -8,3 +8,6 @@
 !.gitignore
 !shell_prompts.txt
 !README.md
+!scripts/*
+!Pipfile
+!Pipfile.lock
