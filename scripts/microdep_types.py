@@ -84,7 +84,7 @@ class AnnotatedI(BaseInterface):
 class EventRecordI(AnnotatedI):
     """
     Interface for events
-    # event_type: str # if not set, raise exception. [snmp_trap, trace_route, correlation_match, gap, unique_correlation_match, jitter]
+    event_type [snmp_trap, trace_route, correlation_match, gap, unique_correlation_match, jitter]
     """
     event_type: str # if not set, raise exception. [snmp_trap, trace_route, correlation_match, gap, unique_correlation_match, jitter]
     required_fields = ['event_type']
@@ -92,12 +92,13 @@ class EventRecordI(AnnotatedI):
 
 class MatchableI(AnnotatedI):
     """
-    [before, before_and_after, after, trace_route_stats, raw_trace_route, trace_route, route_changed]
+    match_type [before, before_and_after, after, trace_route_stats, raw_trace_route, trace_route, route_changed]
     """
     match_type: str # [before, before_and_after, after, trace_route_stats, raw_trace_route, trace_route, route_changed]
     required_fields = ['match_type']
 
 
+# ------------------------------------------------------------------------------
 
 class LinkTrap(EventRecordI):
     timestamp: float # When the link change occurred.
@@ -112,6 +113,7 @@ class LinkTrap(EventRecordI):
 
 
 class TrapDowntime(EventRecordI):
+    # QUESTION: is this related to LinkTrap?
     t_down: str
     name: str
     ifAlias: str
@@ -182,6 +184,7 @@ class GapSum(EventRecordI):
 # ------------------------------------------------------------------------------
 
 class IcmpGap(EventRecordI):
+    # QUESTION: where is this used?
     ts_start: int
     ts_end: int
     uncreachable: str # host/ip eg. "uninett/127.0.0.1"
@@ -194,23 +197,26 @@ class IcmpGap(EventRecordI):
 
 class LinkGapMatch(EventRecordI, MatchableI):
     """
-    INTERFACE
     These records are created using all_correlation.py
-    All of the different kinds of matching is just different attempts at trying to explain why the gap happened.
-    So for instance the first match_type before is just when i try to find a gap record that happened at about the same time as a snmp_trap record.
-    5 Different kinds of matching. (match_type).
+    All of the different kinds of matching is just different attempts at trying
+    to explain why the gap happened. So for instance the first match_type before
+    is just when i try to find a gap record that happened at about the same time
+    as an snmp_trap record. 5 different kinds of matching. (match_type).
 
-    before: Checks that the timestamp for gap is +- the same as the trap and check if the start of a gap.from (or gap.to) (example: tromso-gw3.uninett.no) so tromso in this case,
-    is the same as the first part of the trap.name example tromso-gw.uninett.no. Or if the trap.name is in one of the routers used for the trace_route (trace_route index).
+    before: Checks that the timestamp for gap is +- the same as the trap and check
+    if the start of a gap.from (or gap.to) (example: tromso-gw3.uninett.no) so tromso in this case,
+    is the same as the first part of the trap.name example tromso-gw.uninett.no.
+    Or if the trap.name is in one of the routers used for the trace_route (trace_route index).
 
-    before_and_after: Check if there is also a trap for the same link going up at the time: timestamp_gap + tloss.
+    before_and_after: Check if there is also a trap for the same link going up
+    at the time: timestamp_gap + tloss.
 
     after: Checks that the timestamp for the gap+tloss is +- the same as a trap with the trap_type: linkUp.
     And also the same check as before to make sure the trap was very near a router that was actually used by the gap.
     The reason why there sometimes are more before_and_after correlations than just after correlations is because a before_and_after's first
     trap can be n different and for each one of these there can be m number of last traps.
     """
-    routers_used: list[str] #  [ a list of routers used from "from" to "to" from the trace_route_stats records.  ],
+    routers_used: list[str] # [ a list of routers used from "from" to "to" from the trace_route_stats records.  ],
     timestamp: int # gap's
     from_: str # from (gap.from) is also the same as trace_route_stats from
     to: str # to (gap.to) is also the same as trace_route stats to.
@@ -220,9 +226,8 @@ class LinkGapMatch(EventRecordI, MatchableI):
     timestamp_trap: int # trap's
     logical_name: str # trap's
     ifAlias: str # trap's
-    trap_type: str # trap's
+    trap_type: str # trap's [LinkUp]
     trap_source: str # trap's
-    # match_type: str [before, before_and_after, after]
     event_type = "correlation_match" # is always "correlation_match"
 
     required_fields = ['event_type', 'match_type']
@@ -266,22 +271,21 @@ class TraceRoute(EventRecordI):
     tags: list[str] = ["beats_input_codec_plain_applied"]
     stats: list[HopStats] # [ A list containing every router that was used for this day in the path from (gap.from) to (gap.to). and their corresponding stats. ],
     routers_used: list[str] # [ a list containing just the routers used and not their stats.]
-    event_type = "trace_route"
+    event_type: str = "trace_route"
 
 class TraceRouteStats(EventRecordI, MatchableI):
     """This one checks if the route recently was changed in the trace_route_stats records. Not using traps."""
 
-    trace_route: TraceRoute
-    timestamp: int # gap's
     from_: str # gap's
     to: str # gap's
-    tloss: float # gap's
+    timestamp: int # gap's
     timestamp_zone: str # all timestamps
+    trace_route: TraceRoute
+    tloss: float # gap's
     match_type: str = "trace_route_stats"
     event_type: str = "correlation_match"
 
     required_fields = EventRecordI.required_fields + MatchableI.required_fields
-    # required_fields = ['event_type', 'mat']
 
 
 class Probe:
@@ -303,7 +307,7 @@ class RawTraceRoute(EventRecordI):
 
 class RawTraceRouteStats(EventRecordI, MatchableI):
     """
-    Check if there is a raw_trace_route record with the same to and from as the gap and at the same time+-.
+    Check if there is a raw_trace_route record with the same 'to' and 'from' as the gap and at the same time+-.
     If there is a record then that means that the raw_trace_route contains atleast one * * * * * *.
     """
     from_: str # gap's
@@ -315,6 +319,7 @@ class RawTraceRouteStats(EventRecordI, MatchableI):
     match_type: str = "raw_trace_route"
     event_type: str = "correlation_match"
 
+    required_fields = EventRecordI.required_fields + MatchableI.required_fields
 
 # ------------------------------------------------------------------------------
 
@@ -341,6 +346,7 @@ class RoutingTrap(EventRecordI, MatchableI):
     match_type: str = "routing_trap"
     event_type: str = "correlation_match"
 
+    required_fields = EventRecordI.required_fields + MatchableI.required_fields
 
 # routing ----------------------------------------------------------------------
 
@@ -348,7 +354,7 @@ class BgpUpdate(EventRecordI):
     name: str # Name of which prefix. bgp
     timestamp_zone: str = "GMT" # "GMT"
     prefix: str # bgp_update's
-    community: list # [bgp_update's],
+    community: list # [bgp_update's], # QUESTION: what is in this?
     source_id: str # bgp_update's
     as_path: list # [bgp_update's],
     timestamp: float # bgp_update's
@@ -358,9 +364,13 @@ class BgpUpdate(EventRecordI):
 class Routing(EventRecordI, MatchableI):
     """
     Three different ways of matching a route record with a gap record.
-    The first one is: get a Prefix from a bgp_update and check if either gap.from_adr or gap.to_adr is in the prefix of the bgp_update. (routing_match_type=before)
-    The second one is when a withdraw record happens at gap.timestamp and announce record for the same prefix at gap.timestamp + gap.tloss. And also check is the gap.from_adr or gap.to_adr is in the prefix from the bgp_update (routing_match_type=before_and_after)
-    The last one is when a routing change also matches when a new route was seen. So it goes through every stat in the trace_route_stats and tries to find a first_seen that is +- the same as the gap.timestamp (routing_match_type=trace_route_stats)
+    The first one is: get a Prefix from a bgp_update and check if either gap.from_adr or
+    gap.to_adr is in the prefix of the bgp_update. (routing_match_type=before)
+    The second one is when a withdraw record happens at gap.timestamp and announce
+    record for the same prefix at gap.timestamp + gap.tloss.
+    And also check is the gap.from_adr or gap.to_adr is in the prefix from the bgp_update (routing_match_type=before_and_after)
+    The last one is when a routing change also matches when a new route was seen.
+    So it goes through every stat in the trace_route_stats and tries to find a first_seen that is +- the same as the gap.timestamp (routing_match_type=trace_route_stats)
     """
     from_: str # gap's
     to: str # gap's

@@ -1,5 +1,5 @@
 # ignore everything
-* 
+*
 
 # allow parent files to be included
 !*/
@@ -11,3 +11,5 @@
 !scripts/*
 !Pipfile
 !Pipfile.lock
+!commands.txt
+!paths.py

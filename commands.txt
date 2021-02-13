@@ -1,0 +1,2 @@
+# Start ssh-agent -> add ssh-key -> ssh into iou2 with localtunnel
+eval `ssh-agent`; ssh-add /c/Users/twide/.ssh/uninett_rsa; ssh -L 8899:127.0.0.1:8899 -J emilte@login.uninett.no emilte@iou2.uninett.no -A
