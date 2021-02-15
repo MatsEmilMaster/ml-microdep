@@ -23,46 +23,24 @@ class BaseInterface:
         return list(self.get_all_annotations().keys())
 
 
-# class Interface:
-#
-#     def __init__(self, **kwargs):
-#         self.validate_kwargs(**kwargs)
-#         self.__dict__.update(kwargs) # set attrs
-#
-#     def validate_kwargs(self, **kwargs):
-#         """
-#         Check if required fields exist or are provided on init
-#         required_fields = [{'name': <attr_name> , 'type': <type_class> }]
-#         """
-#
-#         if not hasattr(self, 'required_fields'):
-#             raise NotImplementedError(f"{self.__class__.__name__} requires attr 'required_fields'")
-#
-#         for field in self.required_fields:
-#             name, type = field['name'], field['type']
-#
-#             if hasattr(self, name): # if attr already exists
-#                 if not isinstance(getattr(self, name), type): # check if attr is correct type
-#                     raise TypeError(f"{name} must be {type}")
-#             elif name in kwargs: # elif attr provided on init
-#                 if not isinstance(kwargs[name], type): # check if attr is correct type
-#                     raise TypeError(f"{name} must be {type}")
-#             else: # required field is missing
-#                 raise NotImplementedError(f"{self.__class__.__name__} requires attr '{name}'")
-
 
 class AnnotatedI(BaseInterface):
     """
     This interface will only allow to set attrs that has been annotated. Also support required fields.
     To solve The Diamond Problem on multiple inheritance, redefine 'required_fields' on the child class.
+
+    extended classes must define
+    def __init__(self, *args, **kwargs):
+        self._required_fields.extend(__class__.required_fields) # must be called before super().__init__()
+        super().__init__(*args, **kwargs)
     """
 
-    required_fields: list[str] = []
+    _required_fields: list[str] = []
 
     def __init__(self, *args, **kwargs):
         super().__init__(**kwargs)
         self._set_allowed_attrs(**kwargs)
-        self._check_required(**kwargs)
+        self._check_required_fields(**kwargs)
 
     def _set_allowed_attrs(self, **kwargs):
         attr_names = self.get_all_attr_names()
@@ -72,16 +50,16 @@ class AnnotatedI(BaseInterface):
             else:
                 print(f"[warning][{self.__class__.__name__}]: Attr '{attr}' not allowed")
 
-    def _check_required(self, **kwargs):
+    def _check_required_fields(self, **kwargs):
         """Checks if required fields exists after '_set_allowed_attrs'"""
 
-        for field in self.required_fields:
+        for field in self._required_fields:
             if not hasattr(self, field):
                 raise NotImplementedError(f"[{self.__class__.__name__}] requires attr '{field}'")
 
 
 
-class EventRecordI(AnnotatedI):
+class EventI(AnnotatedI):
     """
     Interface for events
     event_type [snmp_trap, trace_route, correlation_match, gap, unique_correlation_match, jitter]
@@ -89,18 +67,27 @@ class EventRecordI(AnnotatedI):
     event_type: str # if not set, raise exception. [snmp_trap, trace_route, correlation_match, gap, unique_correlation_match, jitter]
     required_fields = ['event_type']
 
+    def __init__(self, *args, **kwargs):
+        self._required_fields.extend(EventI.required_fields)
+        super().__init__(*args, **kwargs)
 
-class MatchableI(AnnotatedI):
+
+class CorrelationEventI(EventI):
     """
     match_type [before, before_and_after, after, trace_route_stats, raw_trace_route, trace_route, route_changed]
     """
+    event_type: str = "correlation_match"
     match_type: str # [before, before_and_after, after, trace_route_stats, raw_trace_route, trace_route, route_changed]
     required_fields = ['match_type']
+
+    def __init__(self, *args, **kwargs):
+        self._required_fields.extend(CorrelationEventI.required_fields)
+        super().__init__(*args, **kwargs)
 
 
 # ------------------------------------------------------------------------------
 
-class LinkTrap(EventRecordI):
+class LinkTrap(EventI):
     timestamp: float # When the link change occurred.
     trap_source: str # The ip of the link.
     name: str # The domain of the link.
@@ -112,18 +99,18 @@ class LinkTrap(EventRecordI):
     event_type: str # which record this is (snmp_trap)
 
 
-class TrapDowntime(EventRecordI):
+class TrapDowntime(EventI):
     # QUESTION: is this related to LinkTrap?
-    t_down: str
     name: str
-    ifAlias: str
-    logical_name: str
     timestamp_down: float
     timestamp_up: float
+    t_down: float
+    ifAlias: str
+    logical_name: str
     event_type: str = "trap_downtime"
 
 
-class Jitter(EventRecordI):
+class Jitter(EventI):
     from_: str
     from_adr: str
     to: str
@@ -132,11 +119,11 @@ class Jitter(EventRecordI):
     datetime: str
     timestamp: float
     timestamp_zone: str = "GMT"
-    h_ddelay: str
-    h_delay: str
+    h_ddelay: float
+    h_delay: float
     h_jit: float
     h_min_d: float
-    h_n: float
+    h_n: int
     h_slope_10: float
     rdelay: list[float]
     report_type: str = "interval"
@@ -145,20 +132,20 @@ class Jitter(EventRecordI):
     event_type: str = "jitter"
 
 
-class GapSum(EventRecordI):
+class GapSum(EventI):
     from_: str # "ytelse-osl.uninett.no",
     from_adr: str # "158.39.1.126",
     to: str # "teknobyen-mp.uninett.no",
     to_adr: str # "158.38.2.4",
     date: str # "2021-01-25T22:59:31.431",
     datetime: str # "2021-01-25T22:59:31.431",
-    timestamp: str # 1611615571.43106,
+    timestamp: float # 1611615571.43106,
     timestamp_zone: str = "GMT"
     big_gaps: int # 0,
-    big_time: int # 0,
+    big_time: float # 0,
     dTTL: float # 0,
     down_ppm: float # 0,
-    duplicates: float # 0,
+    duplicates: int # 0,
     h_ddelay: float # 0.048,
     h_ddelay_sdv: float # 0.0329894167778323,
     h_delay: float # 3.981,
@@ -173,29 +160,29 @@ class GapSum(EventRecordI):
     lasted_sec: float # 86358.989,
     late: int # 0,
     late_sec: int # 0,
-    least_delay: str # "3.867",
+    least_delay: float # "3.867",
     reordered: int # 0,
     resets: int # 0,
     small_gaps: int # 0,
-    small_time: int # 0,
+    small_time: float # 0,
     event_type: str = "gapsum"
 
 
 # ------------------------------------------------------------------------------
 
-class IcmpGap(EventRecordI):
+class IcmpGap(EventI):
     # QUESTION: where is this used?
-    ts_start: int
-    ts_end: int
+    ts_start: float
+    ts_end: float
     uncreachable: str # host/ip eg. "uninett/127.0.0.1"
     source: str # host/ip
     dst: str # host/ip
-    duration: int # ts_end - ts_start
+    duration: float # ts_end - ts_start
     packet_count: int
     # event_type: str
 
 
-class LinkGapMatch(EventRecordI, MatchableI):
+class LinkGapMatch(CorrelationEventI):
     """
     These records are created using all_correlation.py
     All of the different kinds of matching is just different attempts at trying
@@ -230,18 +217,15 @@ class LinkGapMatch(EventRecordI, MatchableI):
     trap_source: str # trap's
     event_type = "correlation_match" # is always "correlation_match"
 
-    required_fields = ['event_type', 'match_type']
-
-
 
 # ------------------------------------------------------------------------------
 
-# class BeforeRoutingTrap(CorrelationMatchI):
+# class BeforeRoutingTrap(CorrelationEventI):
 #     """Like before but also correlating with a routing change that happened at the same time. once I get bgp set up."""
 #     pass
 #     # QUESTION: spør om denne
 #
-# class BeforeAndAfterRoutingTrap(CorrelationMatchI):
+# class BeforeAndAfterRoutingTrap(CorrelationEventI):
 #     """Like before_and_after but also correlating with a routing change that happened at the same time."""
 #     pass
 #     # QUESTION: spør om denne
@@ -253,39 +237,38 @@ class HopStats:
     first_seen: float # the first time this router was seen
     last_seen: float # the last time this router was seen
     seen: int # how many times it was seen
-    sdv: int # standard deviation ping (ms)
-    avg: int # average ping
-    min: int # minimum ping
-    max: int # maximum
+    sdv: float # standard deviation ping (ms)
+    avg: float # average ping
+    min: float # minimum ping
+    max: float # maximum
     hop: int # which hop number this is
     loss: float # loss %
     router: str # which router # QUESTION: spør om denne
     address: str # the ip of this router.
 
-class TraceRoute(EventRecordI):
+class TraceRoute(EventI):
     from_: str # where the trace_route started (should always be the same as gap.from)
     to: str # end location of trace_route (should always be the same as gap.to)
-    timestamp_to: int # end of the day (midnight)
-    timestamp_from: int # start of the day (midnight)
+    timestamp_to: float # end of the day (midnight)
+    timestamp_from: float # start of the day (midnight)
     timestamp_zone: str = "GMT"
     tags: list[str] = ["beats_input_codec_plain_applied"]
     stats: list[HopStats] # [ A list containing every router that was used for this day in the path from (gap.from) to (gap.to). and their corresponding stats. ],
     routers_used: list[str] # [ a list containing just the routers used and not their stats.]
     event_type: str = "trace_route"
 
-class TraceRouteStats(EventRecordI, MatchableI):
+class TraceRouteStats(CorrelationEventI):
     """This one checks if the route recently was changed in the trace_route_stats records. Not using traps."""
 
     from_: str # gap's
     to: str # gap's
-    timestamp: int # gap's
+    timestamp: float # gap's
     timestamp_zone: str # all timestamps
     trace_route: TraceRoute
     tloss: float # gap's
     match_type: str = "trace_route_stats"
     event_type: str = "correlation_match"
 
-    required_fields = EventRecordI.required_fields + MatchableI.required_fields
 
 
 class Probe:
@@ -296,7 +279,7 @@ class Probe:
 class Hop:
     probes: list[Probe] # Only 6 probes
 
-class RawTraceRoute(EventRecordI):
+class RawTraceRoute(EventI):
     from_: str # domain where the trace_route started should be the same as gap's from
     to: str # domain where the trace_route stopped, should be the same as gap's to.
     to_ip: str # which ip the trace_route was to.
@@ -305,25 +288,24 @@ class RawTraceRoute(EventRecordI):
     event_type: str = "raw_trace_route"
 
 
-class RawTraceRouteStats(EventRecordI, MatchableI):
+class RawTraceRouteStats(CorrelationEventI):
     """
     Check if there is a raw_trace_route record with the same 'to' and 'from' as the gap and at the same time+-.
     If there is a record then that means that the raw_trace_route contains atleast one * * * * * *.
     """
     from_: str # gap's
     to: str # gap's
-    tloss: int # gap's
-    timestamp: int # gap's
+    tloss: float # gap's
+    timestamp: float # gap's
     timestamp_zone: str # gap's
     raw_trace_route: RawTraceRoute
     match_type: str = "raw_trace_route"
     event_type: str = "correlation_match"
 
-    required_fields = EventRecordI.required_fields + MatchableI.required_fields
 
 # ------------------------------------------------------------------------------
 
-class RouteChange(EventRecordI):
+class RouteChange(EventI):
     timestamp: float # route_change's
     router_id: str # Ip of the router that changed a prefix.
     exabgp_router: str #  which exabgp-router sent this log
@@ -332,7 +314,7 @@ class RouteChange(EventRecordI):
     change_type: str # either "announce" or "withdraw" if you announce a new prefix or remove one.
     event_type: str = "route_changed"
 
-class RoutingTrap(EventRecordI, MatchableI):
+class RoutingTrap(CorrelationEventI):
     """Check if there is a trap with an ip that is the same ip as route_change.router_id at the same time+-."""
     name: str # trap's
     timestamp: float # trap's
@@ -346,11 +328,10 @@ class RoutingTrap(EventRecordI, MatchableI):
     match_type: str = "routing_trap"
     event_type: str = "correlation_match"
 
-    required_fields = EventRecordI.required_fields + MatchableI.required_fields
 
 # routing ----------------------------------------------------------------------
 
-class BgpUpdate(EventRecordI):
+class BgpUpdate(EventI):
     name: str # Name of which prefix. bgp
     timestamp_zone: str = "GMT" # "GMT"
     prefix: str # bgp_update's
@@ -361,7 +342,7 @@ class BgpUpdate(EventRecordI):
     type: str # bgp_update's. A for announcements and W for withdraws.
     event_type: str = "bgp_update"
 
-class Routing(EventRecordI, MatchableI):
+class Routing(CorrelationEventI):
     """
     Three different ways of matching a route record with a gap record.
     The first one is: get a Prefix from a bgp_update and check if either gap.from_adr or
@@ -387,7 +368,7 @@ class Routing(EventRecordI, MatchableI):
 # ------------------------------------------------------------------------------
 
 
-class Gap(EventRecordI):
+class Gap(EventI):
     from_: str # "volda-mp.hivolda.no" # Who it was sent from.
     to: str # "ntnu-mp.ntnu.no" # Receiver.
     datetime: str # "2018-05-16 18:06:25" # When the gap occurred. Human readable formatted time in second resolution.
@@ -397,18 +378,18 @@ class Gap(EventRecordI):
     h_delay: float # rx-tx average for the last 50 packets
     h_jit: float # the jitter in header
     h_min_d: float # Minimum rx-tx for the last 50 packets.
-    h_n: float # How many packets in the header. usually 50.
+    h_n: int # How many packets in the header. usually 50.
     h_slope_10: float # The ```a``` in ```y=ax+b``` on the 10'th last packet.
     h_slope_20: float # Like above only 20'th last.
     h_slope_30: float # Like above only 30'th last.
     h_slope_40: float # Like above only 40'th last.
     h_slope_50: float # Like above only 50'th last.
-    overlap: float # Number of gaps overlapping eachother with head and tail. This is normally 1. Might be unstable if more than 1.
+    overlap: int # Number of gaps overlapping eachother with head and tail. This is normally 1. Might be unstable if more than 1.
     t_ddelay: float # Like the header, only for the tail
     t_delay: float # Like the header, only for the tail
     t_jit: float # Like the header, only for the tail
     t_min_d: float # Like the header, only for the tail
-    t_n: float # Like the header, only for the tail
+    t_n: int # Like the header, only for the tail
     t_slope_10: float # 10'th first.
     t_slope_20: float # 20'th first.
     t_slope_30: float # 30'th first.
