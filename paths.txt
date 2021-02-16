@@ -4,3 +4,8 @@ SYSLOG_TRD_SIMPLE = "/var/log/elastic/exabgp_trd_simple.log"
 # /home/up/bin/elastic-backup
 curl -X PUT -H'Content-Type: application/json' "http://localhost:9200/_snapshot/kopi?pretty" -d '
 "location": "/dynga/backup/iouelk" # settings
+
+
+CRUDE = "/dynga/uninett/data/{node}/{yyyy-mm-dd}/crude*.gz"
+TRACEROUTE = "/dynga/uninett/data/{node}/{yyyy-mm-dd}/traceroute_{ip}.gz"
+TCPTRACEROUTE = "/dynga/uninett/data/{node}/{yyyy-mm-dd}/tcptraceroute_{ip}.gz"

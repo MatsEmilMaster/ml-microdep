@@ -1,0 +1,5 @@
+icmp gap:
+https://scm.uninett.no/maalepaaler/mp-route/-/blob/master/docs/iou2/icmp_gap.md
+
+Correlated with ICMP index using:
+https://scm.uninett.no/maalepaaler/mp-route/-/blob/master/python_scripts/create_new_records/gap_correlation.py

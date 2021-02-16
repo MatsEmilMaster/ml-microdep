@@ -1,15 +1,3 @@
-# ignore everything
-*
-
-# allow parent files to be included
-!*/
-
-# manually include:
-!.gitignore
-!shell_prompts.txt
-!README.md
-!scripts/*
-!Pipfile
-!Pipfile.lock
-!commands.txt
-!paths.txt
+*secret*
+.venv
+.env

@@ -1,0 +1,4 @@
+1:
+iou2 kan definere environment vars som alle repositories henter fra.
+Eksempler er Kibana port-nr, eller alle nodene i nettverket.
+ 
