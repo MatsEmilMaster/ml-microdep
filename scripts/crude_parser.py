@@ -17,7 +17,7 @@ crude_fred = 'C:/Users/twide/my_projects/git/ml-microdep/secret/fredrikstad-mp.h
 crude_tekno = 'C:/Users/twide/my_projects/git/ml-microdep/secret/teknobyen-mp.uninett.no/2021-02-07/crude-00_00_02.gz'
 crude_ngu = 'C:/Users/twide/my_projects/git/ml-microdep/secret/ngu-mp.ngu.no/2021-02-16/crude-00_00_01.gz'
 
-crude_analyzer = utils.CrudeAnalyzer(window_size=1000, h_n=50, t_n=50, start_gap_threshold=2, end_gap_threshold=5)
+crude_analyzer = utils.CrudeAnalyzer(window_size=1000, h_limit=50, t_limit=50, start_gap_threshold=2, end_gap_threshold=5)
 
 with gzip.open(filename=crude_ngu, mode='rt') as file:
     [file.readline() for i in range(4)] # discard headerlines

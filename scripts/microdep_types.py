@@ -183,6 +183,31 @@ class Gap(EventI):
     tloss: float # When a gap occurs tloss is the time between when you got packets correctly ordered and when you got 5 packets in a row again.
     event_type: str = "gap" # Should always be "gap" for these records.
 
+class Gap2:
+    # TODO: make serializable
+
+    def __init__(self, from_adr, from_ip, to_adr, to_ip, datetime, timestamp, timestamp_zone='GMT', *args, **kwargs):
+        self.from_adr: str = from_adr
+        self.from_ip: str = from_ip
+        self.to_adr: str = to_adr
+        self.to_ip: str = to_ip
+        self.datetime: str = datetime
+        self.timestamp: float = timestamp
+        self.timestamp_zone: str = timestamp_zone
+        # self.h_n: int = h_n
+        # self.t_n: int = t_n
+        self.head: list[CrudeRecord] = []
+        self.tail: list[CrudeRecord] = []
+        self.event_type: str = 'gap'
+
+    # def add_record_to_head(self, record: CrudeRecord) -> None:
+    #     self.head.append(record)
+    #
+    # def add_record_to_tail(self, record: CrudeRecord) -> None:
+    #     self.tail.append(record)
+
+
+
 
 class GapSum(EventI):
     from_: str # "ytelse-osl.uninett.no",
