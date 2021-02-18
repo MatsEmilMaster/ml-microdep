@@ -1,6 +1,7 @@
 # from typing import List, Any
 import json
 import inspect
+from typing import Any
 
 class BaseInterface:
 
@@ -36,8 +37,10 @@ class AnnotatedI(BaseInterface):
     """
 
     _required_fields: list[str] = []
+    required_fields: list[str] = []
 
     def __init__(self, *args, **kwargs):
+        self._required_fields.extend(AnnotatedI.required_fields) # must be called before super().__init__()
         super().__init__(**kwargs)
         self._set_allowed_attrs(**kwargs)
         self._check_required_fields(**kwargs)
@@ -87,6 +90,25 @@ class CorrelationEventI(EventI):
 
 # ------------------------------------------------------------------------------
 
+class CrudeRecord():
+
+    def __init__(self, id, seq, src, dst, tx, rx, size, hoplimit, *args, **kwargs):
+        """All attrs are str"""
+        self.id: int = int(id) # TODO: change to int, currently some analyzers is assuming str
+        self.seq: int = int(seq) # TODO: change to int, currently some analyzers is assuming str
+        self.src: str = src
+        self.dst: str = dst
+        self.tx: float = float(tx)
+        self.rx: float = float(rx)
+        self.size: int = int(size)
+        self.hoplimit: int = int(hoplimit)
+
+    def __str__(self):
+        return f"[{self.__class__.__name__}] (id={self.id}, seq={self.seq}, src={self.src}, dst={self.dst}, tx={self.tx}, rx={self.rx}, size={self.size}, hoplimit={self.hoplimit})"
+
+    def transmit_time(self) -> float:
+        return self.rx - self.tx
+
 class LinkTrap(EventI):
     timestamp: float # When the link change occurred.
     trap_source: str # The ip of the link.
@@ -130,6 +152,36 @@ class Jitter(EventI):
     rtx: list[float]
     slopes: list[str]
     event_type: str = "jitter"
+
+class Gap(EventI):
+    from_: str # "volda-mp.hivolda.no" # Who it was sent from.
+    to: str # "ntnu-mp.ntnu.no" # Receiver.
+    datetime: str # "2018-05-16 18:06:25" # When the gap occurred. Human readable formatted time in second resolution.
+    timestamp: float # Time in seconds since 1970. This timestamp is more accurate then the datetime attribute. In milliseconds.
+    timestamp_zone: str # Which timezone the timestamp is in.
+    h_ddelay: float # Average of the 50 (h_n) packets in the header minus the fastest of the 1000 packets.
+    h_delay: float # rx-tx average for the last 50 packets
+    h_jit: float # the jitter in header
+    h_min_d: float # Minimum rx-tx for the last 50 packets.
+    h_n: int # How many packets in the header. usually 50.
+    h_slope_10: float # The ```a``` in ```y=ax+b``` on the 10'th last packet.
+    h_slope_20: float # Like above only 20'th last.
+    h_slope_30: float # Like above only 30'th last.
+    h_slope_40: float # Like above only 40'th last.
+    h_slope_50: float # Like above only 50'th last.
+    overlap: int # Number of gaps overlapping eachother with head and tail. This is normally 1. Might be unstable if more than 1.
+    t_ddelay: float # Like the header, only for the tail
+    t_delay: float # Like the header, only for the tail
+    t_jit: float # Like the header, only for the tail
+    t_min_d: float # Like the header, only for the tail
+    t_n: int # Like the header, only for the tail
+    t_slope_10: float # 10'th first.
+    t_slope_20: float # 20'th first.
+    t_slope_30: float # 30'th first.
+    t_slope_40: float # 40'th first.
+    t_slope_50: float # 50'th first.
+    tloss: float # When a gap occurs tloss is the time between when you got packets correctly ordered and when you got 5 packets in a row again.
+    event_type: str = "gap" # Should always be "gap" for these records.
 
 
 class GapSum(EventI):
@@ -308,7 +360,7 @@ class RawTraceRouteStats(CorrelationEventI):
 class RouteChange(EventI):
     timestamp: float # route_change's
     router_id: str # Ip of the router that changed a prefix.
-    exabgp_router: str #  which exabgp-router sent this log
+    exabgp_router: str # which exabgp-router sent this log
     ls_nlri_type: str # 3 for ipv4, 4 for ipv6
     ip_reach_prefix: str # ip and prefix that changed.
     change_type: str # either "announce" or "withdraw" if you announce a new prefix or remove one.
@@ -368,35 +420,6 @@ class Routing(CorrelationEventI):
 # ------------------------------------------------------------------------------
 
 
-class Gap(EventI):
-    from_: str # "volda-mp.hivolda.no" # Who it was sent from.
-    to: str # "ntnu-mp.ntnu.no" # Receiver.
-    datetime: str # "2018-05-16 18:06:25" # When the gap occurred. Human readable formatted time in second resolution.
-    timestamp: float # Time in seconds since 1970. This timestamp is more accurate then the datetime attribute. In milliseconds.
-    timestamp_zone: str # Which timezone the timestamp is in.
-    h_ddelay: float # Average of the 50 (h_n) packets in the header minus the fastest of the 1000 packets.
-    h_delay: float # rx-tx average for the last 50 packets
-    h_jit: float # the jitter in header
-    h_min_d: float # Minimum rx-tx for the last 50 packets.
-    h_n: int # How many packets in the header. usually 50.
-    h_slope_10: float # The ```a``` in ```y=ax+b``` on the 10'th last packet.
-    h_slope_20: float # Like above only 20'th last.
-    h_slope_30: float # Like above only 30'th last.
-    h_slope_40: float # Like above only 40'th last.
-    h_slope_50: float # Like above only 50'th last.
-    overlap: int # Number of gaps overlapping eachother with head and tail. This is normally 1. Might be unstable if more than 1.
-    t_ddelay: float # Like the header, only for the tail
-    t_delay: float # Like the header, only for the tail
-    t_jit: float # Like the header, only for the tail
-    t_min_d: float # Like the header, only for the tail
-    t_n: int # Like the header, only for the tail
-    t_slope_10: float # 10'th first.
-    t_slope_20: float # 20'th first.
-    t_slope_30: float # 30'th first.
-    t_slope_40: float # 40'th first.
-    t_slope_50: float # 50'th first.
-    tloss: float # When a gap occurs tloss is the time between when you got packets correctly ordered and when you got 5 packets in a row again.
-    event_type: str = "gap" # Should always be "gap" for these records.
 
 
 if __name__ == "__main__":
