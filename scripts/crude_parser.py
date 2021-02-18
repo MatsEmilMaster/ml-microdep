@@ -14,24 +14,8 @@ MILL = 1000000
 
 
 crude_fred = 'C:/Users/twide/my_projects/git/ml-microdep/secret/fredrikstad-mp.hiof.no/2021-02-07/crude-00_00_01.gz'
-# traceroute = 'C:/Users/twide/my_projects/git/ml-microdep/secret/fredrikstad-mp.hiof.no/2021-02-07/traceroute_128.39.19.150.gz'
-# tcptraceroute = 'C:/Users/twide/my_projects/git/ml-microdep/secret/fredrikstad-mp.hiof.no/2021-02-07/tcptraceroute_128.39.19.150.gz'
-# vmstat = 'C:/Users/twide/my_projects/git/ml-microdep/secret/fredrikstad-mp.hiof.no/2021-02-07/vmstat.gz'
-tekno_crude = 'C:/Users/twide/my_projects/git/ml-microdep/secret/teknobyen-mp.uninett.no/2021-02-07/crude-00_00_02.gz'
-# traceroute2 = 'C:/Users/twide/my_projects/git/ml-microdep/secret/teknobyen-mp.uninett.no/2021-02-07/traceroute_128.39.19.150.gz'
-# tcptraceroute2 = 'C:/Users/twide/my_projects/git/ml-microdep/secret/teknobyen-mp.uninett.no/2021-02-07/tcptraceroute_128.39.19.150.gz'
-# vmstat2 = 'C:/Users/twide/my_projects/git/ml-microdep/secret/teknobyen-mp.uninett.no/2021-02-07/vmstat.gz'
+crude_tekno = 'C:/Users/twide/my_projects/git/ml-microdep/secret/teknobyen-mp.uninett.no/2021-02-07/crude-00_00_02.gz'
 crude_ngu = 'C:/Users/twide/my_projects/git/ml-microdep/secret/ngu-mp.ngu.no/2021-02-16/crude-00_00_01.gz'
-
-# analyzers: dict[str, utils.CrudeStreamAnalyzer] = {}
-
-# def add_record_to_analyzer(record: microdep_types.CrudeRecord) -> None:
-#     global analyzers
-#     id = record.id
-#     if id not in analyzers:
-#         analyzers[id] = utils.CrudeStreamAnalyzer(stream_id=id, window_size=1000, h_n=50, t_n=50, start_gap_threshold=5, end_gap_threshold=5)
-#     # print(f"[crude_parser3][add_record_to_analyzer] id{id}, analyzer={analyzers[id].stream_id}")
-#     analyzers[id].add_record(record)
 
 crude_analyzer = utils.CrudeAnalyzer(window_size=1000, h_n=50, t_n=50, start_gap_threshold=2, end_gap_threshold=5)
 
@@ -63,25 +47,6 @@ with gzip.open(filename=crude_ngu, mode='rt') as file:
         except Exception as e:
             print(f"{i}: {line}, [{e}]")
 
-        # add_record_to_analyzer(record)
-        # for id, a in analyzers.items():
-        #     # print(f"[crude_parser3][analyzer #{id}] {len(a.window)}")
-        #     pass
-
         crude_analyzer.add_record(record)
-        # print(f"[crude_parser3] {crude_analyzer.analyzers}")
 
-# for id, analyzer in crude_analyzer.analyzers.items():
-#     print(f"[crude_parser3]{analyzer.__str__(show_records=15)}")
-#     pass
 print(crude_analyzer.__str__(show_records=5))
-
-# print(f"[crude_parser3] {str(analyzers['7'].window)}")
-# print(record.__dict__)
-
-
-# print( crude_analyzer.analyzers['1'].window[-15:])
-# print( crude_analyzer.analyzers['7'].window[-15:])
-
-# for id, analyzer in analyzers.items():
-#     print(f"[crude_parser3] {id}: {analyzer}")
