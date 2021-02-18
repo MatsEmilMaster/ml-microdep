@@ -7,13 +7,13 @@ class CrudeStreamAnalyzer():
     """Analyzes crude records per stream-id. Does not handle multiple streams"""
 
     def __init__(self, stream_id, window_size, h_n, t_n, start_gap_threshold, end_gap_threshold, gap_mode=0, *args, **kwargs):
-        self.stream_id: int = stream_id
-        self.window_size: int = window_size
-        self.h_n: int = h_n
-        self.t_n: int = t_n
-        self.start_gap_threshold: int = start_gap_threshold
-        self.end_gap_threshold: int = end_gap_threshold
-        self.gap_mode: int = gap_mode
+        self.stream_id: int = int(stream_id)
+        self.window_size: int = int(window_size)
+        self.h_n: int = int(h_n)
+        self.t_n: int = int(t_n)
+        self.start_gap_threshold: int = int(start_gap_threshold)
+        self.end_gap_threshold: int = int(end_gap_threshold)
+        self.gap_mode: int = int(gap_mode)
         self.head: list[microdep_types.CrudeRecord] = []
         self.tail: list[microdep_types.CrudeRecord] = []
         self.window: list[microdep_types.CrudeRecord] = []
@@ -110,23 +110,20 @@ class CrudeStreamAnalyzer():
 class CrudeAnalyzer():
     """CrudeStreamAnalyzer wrapper. Handles multiple streams."""
 
-    def __init__(self, window_size, h_n, t_n, start_gap_threshold, end_gap_threshold, analyzers={}, *args, **kwargs):
-        self.window_size: int = window_size
-        self.h_n = h_n
-        self.t_n = t_n
-        self.start_gap_threshold = start_gap_threshold
-        self.end_gap_threshold = end_gap_threshold
-        self.analyzers: dict[str, CrudeStreamAnalyzer] = analyzers
+    def __init__(self, analyzer=CrudeStreamAnalyzer, analyzers={}, *args, **kwargs):
+        self.kwargs: dict = kwargs
+        self.analyzer = analyzer
+        self.analyzers: dict = analyzers
         self.record_counter = 0
 
     def __str__(self, *args, **kwargs) -> str:
-        s: str = f"[CrudeAnalyzer3] record_counter={self.record_counter}"
+        s: str = f"[CrudeAnalyzer] record_counter={self.record_counter}"
         s += "".join( [f"\n\t{analyzer.__str__(**kwargs)}" for analyzer in self.analyzers.values()] )
         return s
 
     def add_record(self, record: microdep_types.CrudeRecord) -> None:
-        id: str = record.id
+        id: int = record.id
         if id not in self.analyzers:
-            self.analyzers[id] = CrudeStreamAnalyzer(stream_id=id, window_size=self.window_size, h_n=self.h_n, t_n=self.t_n, start_gap_threshold=self.start_gap_threshold, end_gap_threshold=self.end_gap_threshold)
+            self.analyzers[id] = self.analyzer(stream_id=id, **self.kwargs)
         self.analyzers[id].add_record(record)
         self.record_counter += 1
