@@ -200,6 +200,10 @@ class Gap2:
         self.tail: list[CrudeRecord] = []
         self.event_type: str = 'gap'
 
+    def __str__(self):
+        # return f"Gap: \nhead: {[record.seq for record in self.head]} \ntail: {[record.seq for record in self.tail]}"
+        return f"Gap: {self.head[-1].seq} -> {self.tail[0].seq}"
+
     # def add_record_to_head(self, record: CrudeRecord) -> None:
     #     self.head.append(record)
     #
