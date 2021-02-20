@@ -20,8 +20,8 @@ crude_custom = 'C:/Users/twide/my_projects/git/ml-microdep/scripts/crude_custom.
 
 crude_analyzer = utils.CrudeAnalyzer(window_size=1000, h_limit=8, t_limit=8, start_gap_threshold=2, end_gap_threshold=5)
 
-# with gzip.open(filename=crude_ngu, mode='rt') as file:
-with open(file=crude_custom, mode='r') as file:
+with gzip.open(filename=crude_ngu, mode='rt') as file:
+# with open(file=crude_custom, mode='r') as file:
     # [file.readline() for i in range(4)] # discard headerlines
 
     for i, line in enumerate(file, 1):

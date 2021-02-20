@@ -1,7 +1,8 @@
 # from typing import List, Any
 import json
 import inspect
-from typing import Any
+from typing import Any, Union
+import datetime as dt_module
 
 class BaseInterface:
 
@@ -159,43 +160,47 @@ class Gap(EventI):
     datetime: str # "2018-05-16 18:06:25" # When the gap occurred. Human readable formatted time in second resolution.
     timestamp: float # Time in seconds since 1970. This timestamp is more accurate then the datetime attribute. In milliseconds.
     timestamp_zone: str # Which timezone the timestamp is in.
+
+    h_n: int # How many packets in the header. usually 50.
     h_ddelay: float # Average of the 50 (h_n) packets in the header minus the fastest of the 1000 packets.
     h_delay: float # rx-tx average for the last 50 packets
     h_jit: float # the jitter in header
     h_min_d: float # Minimum rx-tx for the last 50 packets.
-    h_n: int # How many packets in the header. usually 50.
     h_slope_10: float # The ```a``` in ```y=ax+b``` on the 10'th last packet.
     h_slope_20: float # Like above only 20'th last.
     h_slope_30: float # Like above only 30'th last.
     h_slope_40: float # Like above only 40'th last.
     h_slope_50: float # Like above only 50'th last.
+
     overlap: int # Number of gaps overlapping eachother with head and tail. This is normally 1. Might be unstable if more than 1.
+    tloss: float # When a gap occurs tloss is the time between when you got packets correctly ordered and when you got 5 packets in a row again.
+
+    t_n: int # Like the header, only for the tail
     t_ddelay: float # Like the header, only for the tail
     t_delay: float # Like the header, only for the tail
     t_jit: float # Like the header, only for the tail
     t_min_d: float # Like the header, only for the tail
-    t_n: int # Like the header, only for the tail
     t_slope_10: float # 10'th first.
     t_slope_20: float # 20'th first.
     t_slope_30: float # 30'th first.
     t_slope_40: float # 40'th first.
     t_slope_50: float # 50'th first.
-    tloss: float # When a gap occurs tloss is the time between when you got packets correctly ordered and when you got 5 packets in a row again.
+
     event_type: str = "gap" # Should always be "gap" for these records.
 
 class Gap2:
     # TODO: make serializable
 
-    def __init__(self, from_adr, from_ip, to_adr, to_ip, datetime, timestamp, timestamp_zone='GMT', *args, **kwargs):
+    def __init__(self, from_adr, from_ip, to_adr, to_ip, datetime, timestamp, tz=dt_module.timezone.utc, fastest_record=None, *args, **kwargs):
         self.from_adr: str = from_adr
         self.from_ip: str = from_ip
         self.to_adr: str = to_adr
         self.to_ip: str = to_ip
-        self.datetime: str = datetime
+        # self.datetime: str = datetime
         self.timestamp: float = timestamp
-        self.timestamp_zone: str = timestamp_zone
+        self.tz: dt_module.timezone = tz
         # self.h_n: int = h_n
-        # self.t_n: int = t_n
+        self.fastest_record: CrudeRecord = fastest_record
         self.head: list[CrudeRecord] = []
         self.tail: list[CrudeRecord] = []
         self.event_type: str = 'gap'
@@ -204,14 +209,88 @@ class Gap2:
         # return f"Gap: \nhead: {[record.seq for record in self.head]} \ntail: {[record.seq for record in self.tail]}"
         return f"Gap: {self.head[-1].seq} -> {self.tail[0].seq}"
 
-    # def add_record_to_head(self, record: CrudeRecord) -> None:
-    #     self.head.append(record)
-    #
-    # def add_record_to_tail(self, record: CrudeRecord) -> None:
-    #     self.tail.append(record)
+    def get_datetime(self):
+        return dt_module.datetime.fromtimestamp(self.timestamp, self.tz)
 
+    def to_json(self, **kwargs):
+        obj = {
+            'from_adr': self.from_adr,
+            'from_ip': self.from_ip,
+            'to_adr': self.to_adr,
+            'to_ip': self.to_ip,
+            # 'datetime': self.get_datetime(),
+            'timestamp': self.timestamp,
+            # 'timestamp_zone': dt_module.timezone.tzname(dt=self.tz),
 
+            'h_n': len(self.head),
+            'h_ddelay': Gap2.avg_delay(records=self.head) - self.fastest_record.transmit_time() if self.fastest_record else 0,
+            'h_delay': Gap2.avg_delay(records=self.head),
+            'h_jit': Gap2.jitter(records=self.head),
+            'h_min_d': Gap2.min_delay(records=self.head),
+            'h_slope_10': Gap2.slope(n=-10, records=self.head),
+            'h_slope_20': Gap2.slope(n=-20, records=self.head),
+            'h_slope_30': Gap2.slope(n=-30, records=self.head),
+            'h_slope_40': Gap2.slope(n=-40, records=self.head),
+            'h_slope_50': Gap2.slope(n=-50, records=self.head),
 
+            'tloss': self.tloss(),
+            't_n': len(self.tail),
+
+            't_n': len(self.tail),
+            't_ddelay': Gap2.avg_delay(records=self.tail) - self.fastest_record.transmit_time() if self.fastest_record else 0,
+            't_delay': Gap2.avg_delay(records=self.tail),
+            't_jit': Gap2.jitter(records=self.tail),
+            't_min_d': Gap2.min_delay(records=self.tail),
+            't_slope_10': Gap2.slope(n=10, records=self.tail),
+            't_slope_20': Gap2.slope(n=20, records=self.tail),
+            't_slope_30': Gap2.slope(n=30, records=self.tail),
+            't_slope_40': Gap2.slope(n=40, records=self.tail),
+            't_slope_50': Gap2.slope(n=50, records=self.tail),
+            'event_type': self.event_type,
+        }
+        return json.dumps(obj, **kwargs)
+
+    def add_record_to_head(self, record: CrudeRecord) -> None:
+        self.head.append(record)
+
+    def add_records_to_head(self, records: list[CrudeRecord]) -> None:
+        self.head.extend(records)
+
+    def add_record_to_tail(self, record: CrudeRecord) -> None:
+        self.tail.append(record)
+
+    def add_records_to_tail(self, records: list[CrudeRecord]) -> None:
+        self.tail.extend(records)
+
+    @staticmethod
+    def avg_delay(records: list[CrudeRecord]) -> float:
+        return sum([record.transmit_time() for record in records]) / len(records)
+
+    @staticmethod
+    def jitter(records: list[CrudeRecord]) -> float:
+        """https://www.pingman.com/kb/article/what-is-jitter-57.html"""
+        return sum([ abs(records[i].rx - records[i+1].rx) for i in range(len(records)-1) ]) / (len(records)-1)
+
+    @staticmethod
+    def min_delay(records: list[CrudeRecord]) -> float:
+        return min([record.transmit_time() for record in records])
+
+    @staticmethod
+    def slope(n: int, records: list[CrudeRecord]) -> float:
+        """
+        Returns slope (a in y=ax+b)
+            n (positive): first n records
+            n (negative): last n records
+        """
+        # TODO: implement
+        pass
+
+    def tloss(self) -> Union[float, None]:
+        """Return time lost in the gap. Difference between last packet before gap and first packet after gap"""
+        try:
+            return self.tail[0].rx - self.head[-1].rx
+        except:
+            return None
 
 class GapSum(EventI):
     from_: str # "ytelse-osl.uninett.no",

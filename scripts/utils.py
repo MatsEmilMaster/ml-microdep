@@ -17,7 +17,7 @@ class CrudeStreamAnalyzer():
         self.gap_counter: int = 0
         self.in_order_counter: int = 1 # resets when packet out of order # NOTE: # could be used, but isn't atm
 
-        
+
         # keep track of occuring gaps
         # eg. save to file or db when gaps are finalized
         # pop gap from this list to keep memory low
@@ -35,7 +35,8 @@ class CrudeStreamAnalyzer():
             if len(gap.tail) >= self.t_limit: # Gap() is complete
                 # finalize gap (write to file/db) and pop from list
                 # print(f"\n[CrudeStreamAnalyzer #{self.stream_id}][_update_unfinished_gaps] Gap found: {gap} ") # print gap that was detected
-                print(f"\n[CrudeStreamAnalyzer #{self.stream_id}][_update_unfinished_gaps] Gap found: {[r.seq for r in gap.head]} - {[r.seq for r in gap.tail]} ") # print gap that was detected
+                # print(f"\n[CrudeStreamAnalyzer #{self.stream_id}][_update_unfinished_gaps] Gap found: {[r.seq for r in gap.head]} - {[r.seq for r in gap.tail]} ") # print gap that was detected
+                print(f"\n[CrudeStreamAnalyzer #{self.stream_id}][_update_unfinished_gaps] Gap found: {gap.to_json(indent=4)} ") # print gap that was detected
                 del self.unfinished_gaps[i]
             else:
                 gap.tail.append(record) # add last record to tail of occuring gaps
@@ -64,8 +65,8 @@ class CrudeStreamAnalyzer():
             self.occuring_gap = None
 
     def cleanup(self):
-        """Write gaps with incomplete to file"""
-        pass
+        """Do something with incomplete gaps"""
+        pass # TODO: implement
 
     def is_order(self, n: int) -> bool:
         """Returns True if all of last n records are in order. Used to detect start/end of gap"""
