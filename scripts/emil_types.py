@@ -44,7 +44,7 @@ class Gap:
         XL: {'from': 50, 'to': None},
     }
 
-    def __init__(self, from_adr, from_ip, to_adr, to_ip, datetime, timestamp, type=None, tz=dt_module.timezone.utc, fastest_record=None, *args, **kwargs):
+    def __init__(self, from_adr, from_ip, to_adr, to_ip, datetime, timestamp, tz=dt_module.timezone.utc, fastest_record=None, *args, **kwargs):
         self.from_adr: str = from_adr
         self.from_ip: str = from_ip
         self.to_adr: str = to_adr
@@ -56,7 +56,6 @@ class Gap:
         self.head: list[CrudeRecord] = []
         self.tail: list[CrudeRecord] = []
         self.event_type: str = 'gap'
-        self.type: Union[str, None] = type
 
     def __str__(self):
         # return f"Gap: \nhead: {[record.seq for record in self.head]} \ntail: {[record.seq for record in self.tail]}"
@@ -70,19 +69,27 @@ class Gap:
 
     @staticmethod
     def get_type(gap_size: int) -> Union[str, None]:
+        if not gap_size: return None
         for type, limits in Gap.GAP_LIMITS.items():
             if (limits['from'] or gap_size-1) <= gap_size < (limits['to'] or gap_size+1):
                 return type
         return None
 
+    def gap_size(self):
+        if len(self.head)==0 or len(self.tail)==0:
+            return None
+        return self.tail[0].seq - self.head[-1].seq
+
+
 
     def to_json(self, **kwargs):
         obj = {
-            'type': self.type,
             'from_adr': self.from_adr,
             'from_ip': self.from_ip,
             'to_adr': self.to_adr,
             'to_ip': self.to_ip,
+            'gap_size': self.gap_size(),
+            'gap_type': self.get_type(self.gap_size()),
             # 'datetime': self.get_datetime(),
             'timestamp': self.timestamp,
             # 'timestamp_zone': dt_module.timezone.tzname(dt=self.tz),
@@ -158,7 +165,6 @@ class Gap:
 
     def tloss(self) -> Union[float, None]:
         """Return time lost in the gap. Difference between last packet before gap and first packet after gap"""
-        try:
-            return self.tail[0].rx - self.head[-1].rx
-        except: # tail or head could be empty
+        if len(self.head)==0 or len(self.tail)==0:
             return None
+        return self.tail[0].rx - self.head[-1].rx
