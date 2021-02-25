@@ -18,7 +18,7 @@ my-py linter works in editor
 │                   ├─ yyyy.mm.dd/
 │                       ├─ crude.gz
 │                       ├─ traceroute.gz
-│                       ├─ gaps
+│                       ├─ gaps # file made by this project (save as json?)
 │                       ├─ ... # other log files
 │                   ├─ ... # other days
 │               ├─ ... # other hosts
@@ -28,7 +28,7 @@ my-py linter works in editor
 │                   ├─ yyyy.mm.dd/
 │                       ├─ crude.gz
 │                       ├─ traceroute.gz
-│                       ├─ gaps # file made by this project
+│                       ├─ gaps # file made by this project (save as json?)
 │                       ├─ ... # other log files
 │                   ├─ ... # other days
 │               ├─ ... # other hosts
