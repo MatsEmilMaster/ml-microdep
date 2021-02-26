@@ -80,8 +80,6 @@ class Gap:
             return None
         return self.tail[0].seq - self.head[-1].seq
 
-
-
     def to_json(self, **kwargs):
         obj = {
             'from_adr': self.from_adr,
