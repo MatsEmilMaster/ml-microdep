@@ -1,6 +1,8 @@
 # imports
 import gzip
+import glob
 import os
+import pathlib
 
 from django.db import connections
 from django.utils import timezone
@@ -9,7 +11,8 @@ from django.core.management.base import BaseCommand
 from django.conf import settings
 
 
-from microdep import models as microdep_models
+
+from apps.microdep import models as microdep_models
 # End: imports -----------------------------------------------------------------
 
 # Settings:
@@ -24,17 +27,29 @@ class Command(BaseCommand):
         # https://stackoverflow.com/questions/14254315/django-dynamic-database-file
         # print(connections.databases)
 
-        connections.databases['foo'] = connections.databases['default']
-        connections.databases['foo']['NAME'] = settings.BASE_DIR / 'bar'
-        # print( type(settings.BASE_DIR) )
+        """
+        Create a database for each host in /dynga/data/
+        Analyze crude streams and create Gap in db
+        """
 
-        microdep_models.CrudeRecord.objects.create()
+        crude_pattern = '**/*crude*.gz'
 
+        data_root = pathlib.Path(os.environ['DATA_ROOT']).resolve()
 
-        for subdir, dirs, files in os.walk(os.environ['SOURCE']):
-            # print(files)
-            pass
-            # for file in files:
-            #     print(os.path.join(subdir, file))
-                # connections.databases['hehe'] = connections.databases['default']
-                # connections.databases['hehe']['NAME'] = subdir
+        # finds all crude files
+        for path in data_root.rglob(crude_pattern): # /**/<data_root>/<domain>/<host>/<yyyy.mm.dd>/*crude*.gz
+            path_tokens = path.as_posix().split('/')
+            domain = path_tokens[-4]
+            host = path_tokens[-3]
+            db_key = f"{domain}_{host}"
+
+            # get or create db
+            if not connections.databases.get(db_key, None):
+                print(db_key)
+                connections.databases[db_key] = dict(connections.databases['default'])
+                connections.databases[db_key]['NAME'] = path.parent.parent / f"{db_key}.db"
+                # print(connections.databases[db_key])
+                
+
+            # analyze file
+            # add gaps to db in data_root/domain/host
