@@ -4,9 +4,9 @@ import emil_types
 import utils
 # End: imports -----------------------------------------------------------------
 MILL = 1000000
-crude_fred = 'C:/Users/twide/my_projects/git/ml-microdep/secret/fredrikstad-mp.hiof.no/2021-02-07/crude-00_00_01.gz'
-crude_tekno = 'C:/Users/twide/my_projects/git/ml-microdep/secret/teknobyen-mp.uninett.no/2021-02-07/crude-00_00_02.gz'
-crude_ngu = 'C:/Users/twide/my_projects/git/ml-microdep/secret/ngu-mp.ngu.no/2021-02-16/crude-00_00_01.gz'
+crude_fred = 'C:/Users/twide/my_projects/git/ml-microdep/secret/dynga_data_temp/uninett/fredrikstad-mp.hiof.no/2021-02-07/crude-00_00_01.gz'
+crude_tekno = 'C:/Users/twide/my_projects/git/ml-microdep/secret/dynga_data_temp/uninett/teknobyen-mp.uninett.no/2021-02-07/crude-00_00_02.gz'
+crude_ngu = 'C:/Users/twide/my_projects/git/ml-microdep/secret/dynga_data_temp/uninett/ngu-mp.ngu.no/2021-02-16/crude-00_00_01.gz'
 crude_custom = 'C:/Users/twide/my_projects/git/ml-microdep/scripts/crude_custom.txt'
 
 crude_analyzer = utils.CrudeAnalyzer(window_size=100, h_limit=5, t_limit=5, start_gap_threshold=6, end_gap_threshold=5)
