@@ -16,14 +16,10 @@ class Command(BaseCommand):
     
     def add_arguments(self, parser):
         # Positional arguments
-        parser.add_argument('path', nargs='+', type=int)
 
         # Named (optional) arguments
-        parser.add_argument(
-            '--delete',
-            action='store_true',
-            help='Delete poll instead of closing it',
-        )
+        parser.add_argument('--root_path', type=str, help='Root directory to search for filepattern')
+        parser.add_argument('--pattern', type=str, help='Glob pattern')
 
     def handle(self, *args, **options):
         print(f"\n== COMMAND: {__file__} ==")

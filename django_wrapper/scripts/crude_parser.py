@@ -14,6 +14,8 @@ crude_analyzer = utils.CrudeAnalyzer(window_size=100, h_limit=5, t_limit=5, star
 with gzip.open(filename=crude_ngu, mode='rt') as file:
 # with open(file=crude_custom, mode='r') as file:
     # [file.readline() for i in range(4)] # discard headerlines
+    
+    records = np.array()
 
     for i, line in enumerate(file, 1):
         line = line.strip()

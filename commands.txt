@@ -1,2 +1,18 @@
-# Start ssh-agent -> add ssh-key -> ssh into iou2 with localtunnel
-eval `ssh-agent`; ssh-add /c/Users/twide/.ssh/uninett_rsa; ssh -L 8899:127.0.0.1:8899 -J emilte@login.uninett.no emilte@iou2.uninett.no -A
+# 
+
+# Start ssh-agent -> add ssh-key -> ssh into iou2 with localtunnel (jupyter lab)
+eval `ssh-agent`; ssh-add ~/.ssh/uninett_rsa; ssh -L 8899:127.0.0.1:8899 -J emilte@login.uninett.no emilte@iou2.uninett.no -A
+
+# Start ssh-agent -> add ssh-key -> ssh into iou2 with localtunnel (jupyter notebook)
+eval `ssh-agent`; ssh-add ~/.ssh/uninett_rsa; ssh -L 9988:127.0.0.1:9988 -J emilte@login.uninett.no emilte@iou2.uninett.no -A
+
+# ncdu (disk usage)
+# -x: do not cross filesystem bounderies
+# -r: read only / prevent delete options
+ncdu -xr
+
+# du
+# -h: human readable M, G
+# -s: summarize
+# -d, --max-depth=N
+du -hs -d 0

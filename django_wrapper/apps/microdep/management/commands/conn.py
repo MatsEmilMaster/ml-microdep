@@ -44,12 +44,14 @@ class Command(BaseCommand):
             db_key = f"{domain}_{host}"
 
             # get or create db
-            if not connections.databases.get(db_key, None):
-                print(db_key)
-                connections.databases[db_key] = dict(connections.databases['default'])
-                connections.databases[db_key]['NAME'] = path.parent.parent / f"{db_key}.db"
+            # if not connections.databases.get(db_key, None):
+            #     print(db_key)
+            #     connections.databases[db_key] = dict(connections.databases['default'])
+            #     connections.databases[db_key]['NAME'] = path.parent.parent / f"{db_key}.db"
                 # print(connections.databases[db_key])
                 
 
             # analyze file
             # add gaps to db in data_root/domain/host
+            
+            
